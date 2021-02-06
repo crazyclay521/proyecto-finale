@@ -4,6 +4,7 @@ from pygame.locals import *
 import sys
 import enum
 import random
+import sqlite3
 
 pg.init()
 '''
@@ -100,7 +101,6 @@ class Nave(pg.sprite.Sprite):
         self.ticks_acumulados = 0
         self.animation_time = FPS//1000 * 3
         self.angle = 0
-        self.escala += 0.02
         self.ticks_por_frame_de_animacion = 1000//FPS * self.retardo_animaciones
         self.vidas = 3
         self.vy = vy
@@ -108,11 +108,7 @@ class Nave(pg.sprite.Sprite):
         self.image = pg.image.load('static/nave.png')
         self.imagenes_explosion = self.cargaExplosion()
         self.ix_explosion = 0
-        self.rect = self.image.get_rect(x=y, y=y, centerx= 600, centery=400)
-        self.rect.x = (self.rect.x + 6)%1200
-        self.rect.y = (self.rect.y +6)%800
-        self.centro_naveX = self.rect.centerx
-        self.centro_naveY = self.rect.centery
+        self.rect = self.image.get_rect(x=y, y=y)
         self.giraCentro = (x, y)
         self.current_time = 0
         self.frame = pg.image.load('static/nave.png')
@@ -170,12 +166,6 @@ class Nave(pg.sprite.Sprite):
             print('explosion detectada')
             self.status = NaveStatus.explotando
             return True
-    def rotacion(self):
-        angulo = (self.angle + 1)%360 if self.sw_pulsado else self.angle
-        if self.escala >= 1.5 or self.escala <=0.5:
-            0.02 *= -1
-        nave_rotadaS = pg.transform.rotozoom(self.image, aungulo, self.escala)
-        rectanguloRot = nave_rotadaS.get_rect(centerx = centro_naveX, centery=centro_naveY)
 
     def update(self, dt):
         if self.status == NaveStatus.explotando:
@@ -186,7 +176,7 @@ class Nave(pg.sprite.Sprite):
             self.rect.y = DIMENSIONES[1] - 75
         if self.rect.y <= 0:
             self.rect.y = 0
-        '''
+        
         if self.rotando:
             self.image = pg.transform.rotate(self.image, 1)
         else:
@@ -224,7 +214,7 @@ class Nave(pg.sprite.Sprite):
 
         if self.rect.centerx > 800 + self.w/2:
             self.rect.centerx = -self.w/2
-        '''
+        
 
 class Game:
     def __init__(self):
@@ -236,7 +226,7 @@ class Game:
         self.rectangulo_pantalla = self.pantalla.get_rect()
         pg.display.set_caption("Destruye_meteoritos")
         pg.display.set_icon(m)
-        self.nave = Nave(37, 263, 1, 1)
+        self.nave = Nave(1, 263, 1, 1)
         self.cuenta_vidas = pg.font.Font('static/VT323-Regular.ttf', 30)
         self.intro3 = pg.font.Font('static/VT323-Regular.ttf', 50)
         self.intro4 = pg.font.Font('static/VT323-Regular.ttf', 150)
