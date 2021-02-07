@@ -27,7 +27,9 @@ white = (255, 255, 255)
 corazon = pg.image.load('static/corazon.png')
 WIDTH = 800
 HEIGHT = 600
-
+corona1 = pg.image.load('static/corona1.png')
+corona2 = pg.image.load('static/corona2.png')
+corona3 = pg.image.load('static/corona3.png')
 class Planeta(pg.sprite.Sprite):
     def __init__(self, x, y, vx):
         pg.sprite.Sprite.__init__(self)
@@ -95,8 +97,8 @@ class NaveStatus(enum.Enum):
     muerta = 2
 
 class Nave(pg.sprite.Sprite):
-    w = 152
-    h = 151
+    w = 75
+    h = 75
     escala = 1
     num_explosion = 8
     retardo_animaciones = 5
@@ -260,25 +262,38 @@ class Game:
             db = self.db_show_data()
             self.pantalla.fill((0, 0, 0))
             Largetext = pg.font.Font('static/VT323-Regular.ttf', 200)
-            textSurf, textRect = self.text_objects1('VOLVER AL INICIO', Largetext)
-            textRect4.center = (175, 300)
-            hs_label = self.cuenta_vidas.render("HIGH SCORES", 1, (255, 255, 255))
-            hs_label_rect = hs_label.get_rect(center = (400, 100))
-            
-            data_entry_01_label =self.cuenta_vidas.render(str(db[0]), 1, (255, 255, 255))
-            data_entry_01_label_rect = data_entry_01_label.get_rect(center = (400, 200))
+            textSurf, textRect = self.text_objects('SALIR', Largetext)
+            textRect.center = (400, 525)
 
-            data_entry_02_label =self.cuenta_vidas.render(str(db[1]), 1, (255, 255, 255))
-            data_entry_02_label_rect = data_entry_02_label.get_rect(center = (400, 250))
+            mouse = pg.mouse.get_pos()
+            click = pg.mouse.get_pressed()
+            if 100+600 > mouse[0] > 100 and 500+50 > mouse[1] > 500:
+                pg.draw.rect(self.pantalla, (255, 255, 255), (100, 500, 600, 50))
+                if click[0] == 1:
+                    self.estado = 8
+                    self.main_loop()
+            else:
+                pg.draw.rect(self.pantalla, (155, 155, 155), (100, 500, 600, 50))
+            self.pantalla.blit(textSurf, textRect)
+            highscore = self.intro4.render("HIGH SCORES", 1, (255, 255, 255))
+            highscore_rect = highscore.get_rect(center = (400, 100))
+            
+            primer_puesto =self.cuenta_vidas.render(str(db[0]), 1, (255, 255, 255))
+            primer_puesto_rect = primer_puesto.get_rect(center = (400, 200))
 
-            data_entry_03_label =self.cuenta_vidas.render(str(db[2]), 1, (255, 255, 255))
-            data_entry_03_label_rect = data_entry_03_label.get_rect(center = (400, 300))
+            segundo_puesto =self.cuenta_vidas.render(str(db[1]), 1, (255, 255, 255))
+            segundo_puesto_rect = segundo_puesto.get_rect(center = (400, 250))
+
+            tercer_puesto =self.cuenta_vidas.render(str(db[2]), 1, (255, 255, 255))
+            tercer_puesto_rect = tercer_puesto.get_rect(center = (400, 300))
             
-            self.pantalla.blit(hs_label, hs_label_rect)
-            
-            self.pantalla.blit(data_entry_01_label, data_entry_01_label_rect)
-            self.pantalla.blit(data_entry_02_label, data_entry_02_label_rect)
-            self.pantalla.blit(data_entry_03_label, data_entry_03_label_rect)
+            self.pantalla.blit(highscore, highscore_rect)
+            self.pantalla.blit(corona1, (200, 180))
+            self.pantalla.blit(corona2, (200, 230))
+            self.pantalla.blit(corona3, (200, 280))
+            self.pantalla.blit(primer_puesto, primer_puesto_rect)
+            self.pantalla.blit(segundo_puesto, segundo_puesto_rect)
+            self.pantalla.blit(tercer_puesto, tercer_puesto_rect)
         
             self.clock.tick(15)
             pg.display.flip()
@@ -302,6 +317,9 @@ class Game:
             self.nave.vy = -10
         elif teclas_pulsadas[K_SPACE]:
             self.nave.rotando = True
+        elif teclas_pulsadas[K_r]:
+            self.bg = pg.image.load('static/bg2.png')
+            self.nave.image = self.nave.sprite_sheet
         else:
             self.nave.vy = 0
         return False
@@ -392,14 +410,14 @@ class Game:
                 self.meteoritos.num_meteoritos = 0
                 self.meteoritos.vx = 7
                 self.nivel = 1
-            if self.meteoritos.num_meteoritos > 1 and self.nivel == 1:
+            if self.meteoritos.num_meteoritos > 10 and self.nivel == 1:
                 self.meteoritos.puntuacion += 50
                 self.meteoritos.image = pg.image.load('static/ovni.png')
                 self.meteoritos.num_meteoritos = 0
                 self.meteoritos.vx = 7
                 self.nivel = 2
                 self.nave.vx = 7
-            if self.meteoritos.num_meteoritos > 1 and self.nivel == 2:
+            if self.meteoritos.num_meteoritos > 20 and self.nivel == 2:
                 self.meteoritos.puntuacion += 50
                 self.meteoritos.image = pg.image.load('static/calavera.png')
                 self.meteoritos.num_meteoritos = 0
@@ -407,7 +425,7 @@ class Game:
                 self.nivel = 2
                 self.nave.vx = 7
                 self.nivel = 3
-            if self.meteoritos.num_meteoritos > 1 and self.nivel == 3:
+            if self.meteoritos.num_meteoritos > 15 and self.nivel == 3:
                 self.meteoritos.vx = 0
                 self.planeta3.update(dt)
                 self.planeta3.draw(self.pantalla)
@@ -729,20 +747,20 @@ class Game:
             self.control_eventos()
             self.todos.update(dt)
             self.todos.draw(self.pantalla)
-            if self.meteoritos.num_meteoritos > 1 and self.nivel == 0:
+            if self.meteoritos.num_meteoritos > 5 and self.nivel == 0:
                 self.meteoritos.puntuacion += 50
                 self.meteoritos.image = pg.image.load('static/meteorito_mediano.png')
                 self.meteoritos.num_meteoritos = 0
                 self.meteoritos.vx = 7
                 self.nivel = 1
-            if self.meteoritos.num_meteoritos > 1 and self.nivel == 1:
+            if self.meteoritos.num_meteoritos > 10 and self.nivel == 1:
                 self.meteoritos.puntuacion += 50
                 self.meteoritos.image = pg.image.load('static/meteorito_grande.png')
                 self.meteoritos.num_meteoritos = 0
                 self.meteoritos.vx = 7
                 self.nivel = 2
                 self.nave.vx = 7
-            if self.meteoritos.num_meteoritos > 1 and self.nivel == 2:
+            if self.meteoritos.num_meteoritos > 15 and self.nivel == 2:
                 self.meteoritos.vx = 0
                 self.planeta2.update(dt)
                 self.planeta2.draw(self.pantalla)
