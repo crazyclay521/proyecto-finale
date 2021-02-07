@@ -5,8 +5,12 @@ import sys
 import enum
 import random
 import sqlite3
+from sqlite3 import Error
 
 pg.init()
+DBFILE = 'highscores.db'
+con = sqlite3.connect(DBFILE)
+c = con.cursor()
 '''
 pg.mixer.init()
 musica = pg.mixer.music.load('static/maluma.mp3')
@@ -23,6 +27,7 @@ white = (255, 255, 255)
 corazon = pg.image.load('static/corazon.png')
 WIDTH = 800
 HEIGHT = 600
+
 class Planeta(pg.sprite.Sprite):
     def __init__(self, x, y, vx):
         pg.sprite.Sprite.__init__(self)
@@ -108,7 +113,7 @@ class Nave(pg.sprite.Sprite):
         self.image = pg.image.load('static/nave.png')
         self.imagenes_explosion = self.cargaExplosion()
         self.ix_explosion = 0
-        self.rect = self.image.get_rect(x=y, y=y)
+        self.rect = self.image.get_rect(x=x, y=y)
         self.giraCentro = (x, y)
         self.current_time = 0
         self.frame = pg.image.load('static/nave.png')
@@ -243,6 +248,41 @@ class Game:
         self.abajo = pg.image.load('static/abajo.png')
         self.bg = pg.image.load('static/bg_(2).png')
         self.estado = 1
+        self.user_text = ''
+    def stadisticas(self):
+        stadisticas = True
+        while stadisticas:
+            events = pg.event.get()
+            for event in events:
+                if event.type == pg.QUIT:
+                    pg.quit()
+                    sys.exit()
+            db = self.db_show_data()
+            self.pantalla.fill((0, 0, 0))
+            Largetext = pg.font.Font('static/VT323-Regular.ttf', 200)
+            textSurf, textRect = self.text_objects1('VOLVER AL INICIO', Largetext)
+            textRect4.center = (175, 300)
+            hs_label = self.cuenta_vidas.render("HIGH SCORES", 1, (255, 255, 255))
+            hs_label_rect = hs_label.get_rect(center = (400, 100))
+            
+            data_entry_01_label =self.cuenta_vidas.render(str(db[0]), 1, (255, 255, 255))
+            data_entry_01_label_rect = data_entry_01_label.get_rect(center = (400, 200))
+
+            data_entry_02_label =self.cuenta_vidas.render(str(db[1]), 1, (255, 255, 255))
+            data_entry_02_label_rect = data_entry_02_label.get_rect(center = (400, 250))
+
+            data_entry_03_label =self.cuenta_vidas.render(str(db[2]), 1, (255, 255, 255))
+            data_entry_03_label_rect = data_entry_03_label.get_rect(center = (400, 300))
+            
+            self.pantalla.blit(hs_label, hs_label_rect)
+            
+            self.pantalla.blit(data_entry_01_label, data_entry_01_label_rect)
+            self.pantalla.blit(data_entry_02_label, data_entry_02_label_rect)
+            self.pantalla.blit(data_entry_03_label, data_entry_03_label_rect)
+        
+            self.clock.tick(15)
+            pg.display.flip()
+
     def yoshi(self):
         yoshi = True
         while yoshi:
@@ -253,13 +293,6 @@ class Game:
                     sys.exit()
             self.pantalla.fill((0, 0, 0))
             self.pantalla.blit(yoshi_fondo, (0, 0))
-            bigtext = pg.font.Font('static/VT323-Regular.ttf', 500)
-            textSurf6, textRect6 = self.diez('RAMÓN PONME', bigtext)
-            textSurf7, textRect7 = self.diez('UN 10 :)', bigtext)
-            textRect6.center = (400, 250)
-            textRect7.center = (400, 350)
-            self.pantalla.blit(textSurf6, textRect6)
-            self.pantalla.blit(textSurf7, textRect7)
             pg.display.flip()
     def control_eventos(self):
         teclas_pulsadas = pg.key.get_pressed()
@@ -268,7 +301,7 @@ class Game:
         elif teclas_pulsadas[K_UP]:
             self.nave.vy = -10
         elif teclas_pulsadas[K_SPACE]:
-            self.nave.rotacion()
+            self.nave.rotando = True
         else:
             self.nave.vy = 0
         return False
@@ -329,7 +362,7 @@ class Game:
                 self.meteoritos.puntuacion -= 2
             if self.nave.status == NaveStatus.muerta:
                 self.nave.vidas -= 1
-                self.meteoritos.reset_posicion()
+                self.meteoritos.reset_pos()
                 self.meteoritos.num_meteoritos = 0
                 self.meteoritos.vx = 7
                 if self.nave.vidas == 0:
@@ -359,14 +392,14 @@ class Game:
                 self.meteoritos.num_meteoritos = 0
                 self.meteoritos.vx = 7
                 self.nivel = 1
-            if self.meteoritos.num_meteoritos > 5 and self.nivel == 1:
+            if self.meteoritos.num_meteoritos > 1 and self.nivel == 1:
                 self.meteoritos.puntuacion += 50
                 self.meteoritos.image = pg.image.load('static/ovni.png')
                 self.meteoritos.num_meteoritos = 0
                 self.meteoritos.vx = 7
                 self.nivel = 2
                 self.nave.vx = 7
-            if self.meteoritos.num_meteoritos > 5 and self.nivel == 2:
+            if self.meteoritos.num_meteoritos > 1 and self.nivel == 2:
                 self.meteoritos.puntuacion += 50
                 self.meteoritos.image = pg.image.load('static/calavera.png')
                 self.meteoritos.num_meteoritos = 0
@@ -374,7 +407,7 @@ class Game:
                 self.nivel = 2
                 self.nave.vx = 7
                 self.nivel = 3
-            if self.meteoritos.num_meteoritos > 5 and self.nivel == 3:
+            if self.meteoritos.num_meteoritos > 1 and self.nivel == 3:
                 self.meteoritos.vx = 0
                 self.planeta3.update(dt)
                 self.planeta3.draw(self.pantalla)
@@ -591,6 +624,14 @@ class Game:
                 if event.type == pg.QUIT:
                     pg.quit()
                     sys.exit()
+                if event.type == pg.KEYDOWN:
+                    if event.key == pg.K_BACKSPACE:
+                        self.user_text = self.user_text[:-1]
+                    else:
+                        self.user_text += event.unicode
+                        print(self.user_text)
+                        return        
+            self.base_font = pg.font.Font(None,32)
             self.pantalla.fill((0, 0, 0))
             Largetext = pg.font.Font('static/VT323-Regular.ttf', 200)
             bigtext = pg.font.Font('static/VT323-Regular.ttf', 500)
@@ -623,12 +664,12 @@ class Game:
             click = pg.mouse.get_pressed()
             if 50+250 > mouse[0] > 50 and 500+50 > mouse[1] > 500:
                 pg.draw.rect(self.pantalla, (255, 255, 255), (50, 500, 250, 50))
-                '''
                 if click[0] == 1:
-                    self.estado = 5
-                    self.reiniciar_lp()
+                    self.estado = 11
+                    self.db_connection(DBFILE)
+                    self.db_creation()
+                    self.db_data_entry()
                     self.main_loop()
-                '''
             else:
                 pg.draw.rect(self.pantalla, (155, 155, 155), (50, 500, 250, 50))
             if 500+250 > mouse[0] > 500 and 500+50 > mouse[1] > 500:
@@ -640,6 +681,13 @@ class Game:
                 pg.draw.rect(self.pantalla, (155, 155, 155), (500, 500, 250, 50))
             self.pantalla.blit(textSurf4, textRect4)
             self.pantalla.blit(textSurf5, textRect5)
+            self.input_rect = pg.Rect(325,450,140,32)
+            self.text_surface = self.base_font.render(self.user_text,True,(255, 255, 255))
+            self.pantalla.blit(self.text_surface,(self.input_rect.x + 5,self.input_rect.y + 5))
+            pg.draw.rect(self.pantalla,(255,255,255), self.input_rect, 1)
+            self.input_rect.w = max(100,self.text_surface.get_width() +10)
+
+
             pg.display.update()
             self.clock.tick(15)
             pg.display.flip()
@@ -704,6 +752,8 @@ class Game:
                     self.nave.rect.y = 229
                     self.estado = 4
                     self.main_loop()
+                if self.nave.rect.x > 375 and self.nave.rotando == False:
+                    self.nave.explosion()
             if self.nave.rotando == True:
                 self.meteoritos.puntuacion += 1
             self.pantalla.blit(SPalabra_vidas, (Rpalabra_vidas.x, Rpalabra_vidas.y))
@@ -763,6 +813,7 @@ class Game:
             self.clock.tick(15)
             pg.display.flip()
     def main_loop(self):
+
         running = True
         while running:
             #pg.mixer.music.play()
@@ -792,3 +843,35 @@ class Game:
                 sys.exit()
             elif self.estado == 10:
                 self.yoshi()
+            elif self.estado == 11:
+                self.stadisticas()
+    def db_connection(self, db_file):
+        con = None
+        try:
+            con = sqlite3.connect(db_file)
+            print('entro con')
+            return con
+        except Error as error:
+            print("Could not connect database: " + str(error))
+    def db_creation(self):
+        try:
+            c.execute('CREATE TABLE IF NOT EXISTS highscores (name TEXT, score INTEGER)')
+            con.commit()
+        except Error as error:
+            print("Could not create table " + str(error))
+    def db_data_entry(self):
+        try:
+            c.execute("INSERT INTO highscores (name, score) VALUES (?, ?)", (str(self.user_text), int(self.meteoritos.puntuacion)))
+            con.commit()
+            print(self.user_text)
+            
+        except Error as error:
+            print("Could not add data to database: " + str(error))
+    def db_show_data(self):
+        c.execute('SELECT * FROM highscores ORDER BY score DESC')
+        db = []
+        for x in range(3):
+            db.append(c.fetchone())
+        con.commit
+        c.close
+        return db
